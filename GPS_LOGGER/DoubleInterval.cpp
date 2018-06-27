@@ -1,4 +1,7 @@
-/*Memory chip works in pages, where each page is made up of 64 bytes
+/*NOTE THAT IN SLEEP MODE THE ARDUINO USES A WATCH DOG TIMER WHICH CAN BE WILDLY INACCURATE. THIS CODE WAS DESIGNED 
+ * TO RUN A 6 HOUR , 18 HOURS OFF INTERVAL. 
+ * 
+ * Memory chip works in pages, where each page is made up of 64 bytes
  * Page 1: 0 - 63
  * Page 2: 64 - 127, etc
  * 
@@ -15,7 +18,6 @@
  * Will have to turn it on at 10 for it to work
  * 
  * Make clear go futher (only does first 400)
- * 
  * 
  * 2 minutes to get GPS
  * 2.2 seconds of delay
@@ -70,14 +72,16 @@
 #define transistorEEPROM 5
 
 //Make sure theses are deviasable by 8 to ensure it turns back on when expected to
-int stay_on = 1; /*minutes*/
-float short_sleep = 29; /*minutes*/ //2 minutes for GPS fix, so it will turn on every 30min
-float long_sleep = 18; /*hours*/
-int day_interval = 12;
+int stay_on = 1; /*amount of time gps is active in minutes*/
+float Interval_sleep = 29; /*amount of time logger sleeps between reading in minutes*/
+float Deep_sleep = 18; /*amount of time logger goes into deep sleep in hours*/
+int day_interval = 12; /*number of cycles(log-sleep)*/
 int run_counter = 0;
 
+float short_sleep = (Interval_sleep-3); /*in our tests we found an average delay of 3 minutes*/
+float long_sleep = (Deep_sleep-3); /*in our tests we found an average delay of 3 hours*/
 uint32_t feedDuration = stay_on * 60000;                 //time spent getting GPS fix               
-uint32_t shortSleep = 217;//(short_sleep * 60) / 8;   //time sleeping (short sleep)
+uint32_t shortSleep =(short_sleep * 60) / 8;   //time sleeping (short sleep)
 uint32_t longSleep = (long_sleep * 60 * 60)/ 8;       //time sleeping (long sleep)
 //Will always round down if a deciaml
 
@@ -194,7 +198,7 @@ void loop(){
 
 void runLogger()  {
 
-  while(run_counter <= day_interval){
+  while(run_counter < day_interval){
     
       digitalWrite(transistorGPS, HIGH);
       delay(500); 
@@ -212,11 +216,10 @@ void runLogger()  {
       delay(100);
      
       
-      for (int i = 0; i < (shortSleep); i++) {
+      for (int i = 0; i < (shortSleep-1); i++) {
         LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);   
       }
-      LowPower.powerDown(SLEEP_4S, ADC_OFF, BOD_OFF);
-      
+           
       delay(500);
       run_counter++; 
   }
@@ -226,24 +229,6 @@ void runLogger()  {
         LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);   
       }
   }
-  
-  
-  /*
-  long_sleep_counter++;
-
-  if (long_sleep_counter == 12) {
-    for (int i = 0; i < longSleep; i++){
-      LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF); //sleep for 8 seconds, turns Analog-to-digital converter off, turns BOD off
-    }
-    delay(50);
-    long_sleep_counter = 0;
-  }*/
-
-/*
-  for (int i = 0; i < shortSleep; i++) {
-    LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF); //sleep for 8 seconds, turns Analog-to-digital converter off, turns BOD off
-  }
-  */
 
 
 void runMenu()  {  
