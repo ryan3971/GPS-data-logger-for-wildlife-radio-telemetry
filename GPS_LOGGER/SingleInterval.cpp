@@ -15,8 +15,7 @@
  * Will have to turn it on at 10 for it to work
  * 
  * Make clear go futher (only does first 400)
- * 
- * 
+ *  
  * 2 minutes to get GPS
  * 2.2 seconds of delay
  * Get GPS every hour/half hour
