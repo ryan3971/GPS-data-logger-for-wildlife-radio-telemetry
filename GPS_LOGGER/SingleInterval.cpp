@@ -115,6 +115,18 @@ void setup(){
   digitalWrite(LED_BUILTIN, LOW);
   delay(250);
 
+
+	//Having all pins beaviour left undefined leaves them floating, and wasting power
+	//By defining the pins, it saves on power consumption (more apperent when in deep-sleep)
+  //Pins 2, 4, 5, A4, A5 are used so not included here
+	//byte pin[] = { 3, 6, 7, 8, 9, 10, 11, 12, A0, A1, A2, A3, A6, A7 };
+	//byte pinCount = sizeof(pin) / sizeof(pin[0]);
+
+	//for (byte i = 0; i <= pinCount; i++) {
+	//	pinMode(i, INPUT);    // changed as per below
+	//	digitalWrite(i, LOW);  //     ditto
+	//}
+
   pinMode(transistorGPS, OUTPUT);
   pinMode(transistorEEPROM, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);
