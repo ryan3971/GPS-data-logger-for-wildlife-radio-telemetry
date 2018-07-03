@@ -42,6 +42,10 @@
  * Having Serial enaables consumes a lot of power (Only when connected to computer though)
  *
  *
+ *TODO:
+ * Clean currently does all of the chip
+ * Add code that sets al pins to LOW to save on power
+ *
  */
 
 // Libraries and links to download.
@@ -58,13 +62,14 @@
 
 //Make sure theses are deviasable by 8 to ensure it turns back on when expected to
 static const int stay_on = 1; /*amount of time gps is active in minutes*/
-static const int Interval_sleep = 4; /*amount of time logger sleeps between reading in minutes*/
+static const int Interval_sleep = 30; /*amount of time logger sleeps between reading in minutes*/
 static const int Deep_sleep = 18; /*amount of time logger goes into deep sleep in hours*/
-static const int day_interval = 20; /*number of cycles(log-sleep)*/
+static const int day_interval = 12; /*number of cycles of short sleep before long-sleep*/
 int run_counter = 0;
 
-static const float short_sleep = (Interval_sleep-3); /*in our tests we found an average delay of 3 minutes*/
-static const float long_sleep = (Deep_sleep-3); /*in our tests we found an average delay of 3 hours*/
+static const float short_sleep = (Interval_sleep - 3); /*in our tests we found an average delay of 3 minutes*/
+static const float long_sleep = (Deep_sleep - 2); /*in our tests we found an average delay of 3 hours*/
+
 uint32_t feedDuration = stay_on * 60000;                 //time spent getting GPS fix
 uint32_t shortSleep =(short_sleep * 60) / 8;   //time sleeping (short sleep)
 uint32_t longSleep = (long_sleep * 60 * 60)/ 8;       //time sleeping (long sleep)
@@ -184,8 +189,7 @@ void runLogger()  {
       digitalWrite(transistorGPS, HIGH);
       delay(500);
 
-
-       GPS_run = millis();
+      GPS_run = millis();
 
       while (millis() - GPS_run < feedDuration) {
         feedGPS();
@@ -196,11 +200,9 @@ void runLogger()  {
       printLocation();
       delay(100);
 
-
-      for (int i = 0; i < (shortSleep-1); i++) {
+      for (int i = 0; i < shortSleep; i++) {
         LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
       }
-
       delay(500);
       run_counter++;
   }
