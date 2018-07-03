@@ -45,6 +45,7 @@
  *TODO:
  * Clean currently does all of the chip
  * Add code that sets al pins to LOW to save on power
+ * When GPS is on, unit draws approx. 100mA. Need to bring that down
  *
  */
 
@@ -259,12 +260,13 @@ void runMenu()  {
         Serial.print("Pleast wait until light turns off...");
 
         EEPROM.get(1, address);
-
-        for (int i = 0; i < 6000; i++) {
-          eeWrite(i, 0); delay(6);
-        }
         //resets the address on the EEPROM
         EEPROM.put(1, DATA_START_LOCATION);
+
+
+        for (int i = 0; i < address; i++) {
+          eeWrite(i, 0); delay(6);
+        }
 
         Serial.println("Done");
         Serial.println("---------Done Clearing---------");

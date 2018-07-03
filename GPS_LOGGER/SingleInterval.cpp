@@ -45,6 +45,7 @@
  *TODO:
  * Clean currently does all of the chip
  * Add code that sets al pins to LOW to save on power
+ * When GPS is on, unit draws approx. 100mA. Need to bring that down
  *
  */
 
@@ -62,7 +63,7 @@
 
 //Make sure theses are deviasable by 8 to ensure it turns back on when expected to
 static const int stay_on = 1; /*amount of time gps is active in minutes*/
-static const int Interval_sleep = 30; /*amount of time logger sleeps between reading in minutes*/
+static const int Interval_sleep = 5; /*amount of time logger sleeps between reading in minutes*/
 
 static const float short_sleep = (Interval_sleep - 3); /*in our tests we found an average delay of 3 minutes*/
 
@@ -196,7 +197,7 @@ void runLogger()  {
     for (int i = 0; i < shortSleep; i++) {
       LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
     }
-    delay(500);  
+    delay(500);
   }
 
 
@@ -245,12 +246,12 @@ void runMenu()  {
         Serial.print("Pleast wait until light turns off...");
 
         EEPROM.get(1, address);
-
-        for (int i = 0; i < 6000; i++) {
-          eeWrite(i, 0); delay(6);
-        }
         //resets the address on the EEPROM
         EEPROM.put(1, DATA_START_LOCATION);
+
+        for (int i = 0; i < address; i++) {
+          eeWrite(i, 0); delay(6);
+        }
 
         Serial.println("Done");
         Serial.println("---------Done Clearing---------");
