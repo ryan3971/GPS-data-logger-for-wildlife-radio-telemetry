@@ -72,14 +72,14 @@
 #define transistorEEPROM 5
 
 //Make sure theses are deviasable by 8 to ensure it turns back on when expected to
-int stay_on = 1; /*amount of time gps is active in minutes*/
-float Interval_sleep = 29; /*amount of time logger sleeps between reading in minutes*/
-float Deep_sleep = 18; /*amount of time logger goes into deep sleep in hours*/
-int day_interval = 12; /*number of cycles(log-sleep)*/
+static const int stay_on = 1; /*amount of time gps is active in minutes*/
+static const int Interval_sleep = 4; /*amount of time logger sleeps between reading in minutes*/
+static const int Deep_sleep = 18; /*amount of time logger goes into deep sleep in hours*/
+static const int day_interval = 20; /*number of cycles(log-sleep)*/
 int run_counter = 0;
 
-float short_sleep = (Interval_sleep-3); /*in our tests we found an average delay of 3 minutes*/
-float long_sleep = (Deep_sleep-3); /*in our tests we found an average delay of 3 hours*/
+static const float short_sleep = (Interval_sleep-3); /*in our tests we found an average delay of 3 minutes*/
+static const float long_sleep = (Deep_sleep-3); /*in our tests we found an average delay of 3 hours*/
 uint32_t feedDuration = stay_on * 60000;                 //time spent getting GPS fix               
 uint32_t shortSleep =(short_sleep * 60) / 8;   //time sleeping (short sleep)
 uint32_t longSleep = (long_sleep * 60 * 60)/ 8;       //time sleeping (long sleep)
@@ -94,24 +94,20 @@ unsigned short address;     //number range is 0 - 65,535
 TinyGPSPlus gps;
 SoftwareSerial ss(RXPin, TXPin);
 
-unsigned short DATA_START_LOCATION = 16;
-unsigned short ADDRESS_INCREMENT = 16;
+static const int DATA_START_LOCATION = 16;
+static const int ADDRESS_INCREMENT = 16;
 
-int numberLines = 50;   // used in Z case. Force prints x number of lines.
-
-
+static const int numberLines = 300;   // used in Z case. Force prints x number of lines.
 unsigned long startup_timer;
 
 
 int mode = 0; 
-const int LOGGER = 0;
-const int MENU = 1;
+static const int LOGGER = 0;
+static const int MENU = 1;
 
 uint32_t GPS_run;
 int long_sleep_counter = 0;
 
-
-void menu();
 
 struct config {
   byte fix_attempt;
@@ -122,7 +118,7 @@ struct config {
   byte hour;
   byte minute;
   byte second;
-  byte satellites;
+  long satellites;
 } config;
   
 //------------------------------------------( Setup )------------------------------------------//
@@ -243,10 +239,11 @@ void runMenu()  {
 
         Serial.println();
         Serial.println("************* COPY Begin *****************");
-        Serial.println("Lat     \t Lng     \t Day/Month      EST_Time     Sat. \t HDOP");
+        Serial.println("Lat     \t Lng     \t Day/Month      EST_Time     bat. \t HDOP");
 
         while (true) {
           eeRead(address, config);    //Read the first location into structure 'config'
+          Serial.println (address);
           address += ADDRESS_INCREMENT;
           delay(100);
 
@@ -276,7 +273,7 @@ void runMenu()  {
 
         address = EEPROM.read(1);
 
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 6000; i++) {
           eeWrite(i, 0); delay(6);
         }
         //resets the address on the EEPROM
@@ -299,7 +296,7 @@ void runMenu()  {
         for (int i = 0 ; i < numberLines; i++){
           eeRead(address, config); delay(100);
           address += ADDRESS_INCREMENT;
-          delay(100);
+          delay(10);
           printLocation(); 
         }
 
@@ -345,8 +342,8 @@ void printLocation() {
   if (config.minute < 10) Serial.print("0");
   Serial.print(config.minute);Serial.print(":");
   if (config.second < 10) Serial.print("0");
-  Serial.print(config.second);Serial.print("\t\t");
-  Serial.println (config.satellites, DEC);
+  Serial.print(config.second);Serial.print("\t");
+  Serial.println (config.satellites);
   delay(10);  
 }
 
