@@ -83,7 +83,7 @@ SoftwareSerial ss(RXPin, TXPin);
 static const int DATA_START_LOCATION = 16;
 static const int ADDRESS_INCREMENT = 16;
 
-static const int numberLines = 300;   // used in Z case. Force prints x number of lines.
+static const int numberLines = 100;   // used in Z case. Force prints x number of lines.
 unsigned long startup_timer;
 
 
@@ -104,7 +104,7 @@ struct config {
   byte hour;
   byte minute;
   byte second;
-  long satellites;
+  byte satellites;
 } config;
 
 //------------------------------------------( Setup )------------------------------------------//
@@ -116,16 +116,16 @@ void setup(){
   delay(250);
 
 
-	//Having all pins beaviour left undefined leaves them floating, and wasting power
-	//By defining the pins, it saves on power consumption (more apperent when in deep-sleep)
+  //Having all pins beaviour left undefined leaves them floating, and wasting power
+  //By defining the pins, it saves on power consumption (more apperent when in deep-sleep)
   //Pins 2, 4, 5, A4, A5 are used so not included here
-	//byte pin[] = { 3, 6, 7, 8, 9, 10, 11, 12, A0, A1, A2, A3, A6, A7 };
-	//byte pinCount = sizeof(pin) / sizeof(pin[0]);
+  //byte pin[] = { 3, 6, 7, 8, 9, 10, 11, 12, A0, A1, A2, A3, A6, A7 };
+  //byte pinCount = sizeof(pin) / sizeof(pin[0]);
 
-	//for (byte i = 0; i <= pinCount; i++) {
-	//	pinMode(i, INPUT);    // changed as per below
-	//	digitalWrite(i, LOW);  //     ditto
-	//}
+  //for (byte i = 0; i <= pinCount; i++) {
+  //  pinMode(i, INPUT);    // changed as per below
+  //  digitalWrite(i, LOW);  //     ditto
+  //}
 
   pinMode(transistorGPS, OUTPUT);
   pinMode(transistorEEPROM, OUTPUT);
@@ -138,7 +138,6 @@ void setup(){
   digitalWrite(transistorEEPROM, LOW);
   digitalWrite(transistorGPS, LOW);
   EEPROM.get(1, address);
-  Serial.println(address);
 
   mode = LOGGER;
 
@@ -166,9 +165,9 @@ void loop(){
       digitalWrite(transistorEEPROM, HIGH);
       digitalWrite(transistorGPS, LOW);
       delay(1000);
-       Serial.println("-------------STARTING TO READ AND WRITE---------------");
-        Serial.println("______________________________________________________");
-       menu();
+      Serial.println("-------------STARTING TO READ AND WRITE---------------");
+      Serial.println("______________________________________________________");
+      menu();
       while(true){
        runMenu();
       }
@@ -229,7 +228,6 @@ void runMenu()  {
 
         while (true) {
           eeRead(address, config);    //Read the first location into structure 'config'
-          Serial.println (address);
           address += ADDRESS_INCREMENT;
           delay(100);
 
@@ -277,7 +275,7 @@ void runMenu()  {
       case 'Z':{
         digitalWrite(LED_BUILTIN, HIGH);
 
-        address = 0;
+        address = DATA_START_LOCATION;
 
         for (int i = 0 ; i < numberLines; i++){
           eeRead(address, config); delay(100);
@@ -329,7 +327,7 @@ void printLocation() {
   Serial.print(config.minute);Serial.print(":");
   if (config.second < 10) Serial.print("0");
   Serial.print(config.second);Serial.print("\t");
-  Serial.println (config.satellites);
+  Serial.println(config.satellites, DEC);
   delay(10);
 }
 
@@ -354,7 +352,6 @@ void WriteEE () {
   eeWrite(address, config);
   address += ADDRESS_INCREMENT;
   EEPROM.put(1, address);
-  Serial.println(address);
   delay(100);
 
   digitalWrite(transistorEEPROM, LOW);
