@@ -63,12 +63,10 @@
 
 //Make sure theses are deviasable by 8 to ensure it turns back on when expected to
 static const int stay_on = 1; /*amount of time gps is active in minutes*/
-static const int Interval_sleep = 5; /*amount of time logger sleeps between reading in minutes*/
-
-static const float short_sleep = (Interval_sleep - 3); /*in our tests we found an average delay of 3 minutes*/
+static const int short_sleep = 1; /*amount of time logger sleeps between reading in minutes*/
 
 uint32_t feedDuration = stay_on * 60000;                 //time spent getting GPS fix
-uint32_t shortSleep =(short_sleep * 60) / 8;   //time sleeping (short sleep)
+uint32_t shortSleep =(short_sleep * 60 * 60) / 8;   //time sleeping (short sleep)
 //Will always round down if a deciaml
 
 
@@ -129,6 +127,7 @@ void setup(){
 
   pinMode(transistorGPS, OUTPUT);
   pinMode(transistorEEPROM, OUTPUT);
+
   pinMode(LED_BUILTIN, OUTPUT);
 
   Serial.begin(9600);
@@ -137,7 +136,7 @@ void setup(){
 
   digitalWrite(transistorEEPROM, LOW);
   digitalWrite(transistorGPS, LOW);
-  EEPROM.get(1, address);
+  EEPROM.get(0, address);
 
   mode = LOGGER;
 
@@ -162,8 +161,6 @@ void loop(){
 
   switch (mode) {
     case MENU:{
-      digitalWrite(transistorEEPROM, HIGH);
-      digitalWrite(transistorGPS, LOW);
       delay(1000);
       Serial.println("-------------STARTING TO READ AND WRITE---------------");
       Serial.println("______________________________________________________");
@@ -175,9 +172,13 @@ void loop(){
     }
     case LOGGER:{
       Serial.println(F("Starting GPS..."));
-      digitalWrite(transistorEEPROM, LOW);
-      digitalWrite(transistorGPS, HIGH);
       delay(1000);
+
+      digitalWrite(LED_BUILTIN, HIGH);
+      delay(250);
+      digitalWrite(LED_BUILTIN, LOW);
+      delay(250);
+
       while(true){
         runLogger();
       }
@@ -192,6 +193,7 @@ void loop(){
 void runLogger()  {
 
     digitalWrite(transistorGPS, HIGH);
+
     delay(500);
 
     GPS_run = millis();
@@ -214,6 +216,9 @@ void runLogger()  {
 
 void runMenu()  {
 
+ digitalWrite(transistorEEPROM, HIGH);
+
+
  if (Serial.available() == 1) {
     switch (toUpperCase(Serial.read())) {
 
@@ -224,7 +229,7 @@ void runMenu()  {
 
         Serial.println();
         Serial.println("************* COPY Begin *****************");
-        Serial.println("Lat     \t Lng     \t Day/Month      EST_Time     bat. \t HDOP");
+        Serial.println("Lat     \t Lng     \t Day/Month      EST_Time       sat.");
 
         while (true) {
           eeRead(address, config);    //Read the first location into structure 'config'
@@ -255,9 +260,9 @@ void runMenu()  {
         Serial.println("--------Clearing I2C EEPROM--------");
         Serial.print("Pleast wait until light turns off...");
 
-        EEPROM.get(1, address);
+        EEPROM.get(0, address);
         //resets the address on the EEPROM
-        EEPROM.put(1, DATA_START_LOCATION);
+        EEPROM.put(0, DATA_START_LOCATION);
 
         for (int i = 0; i < address; i++) {
           eeWrite(i, 0); delay(6);
@@ -343,6 +348,10 @@ void WriteEE () {
   config.second = gps.time.second();
   config.satellites = gps.satellites.value();
 
+  if (gps.location.isUpdated() == false)  {
+    config.lat = 0;
+    config.lon = 0;
+  }
 
   digitalWrite(transistorGPS, LOW);
   delay(100);
@@ -351,7 +360,7 @@ void WriteEE () {
 
   eeWrite(address, config);
   address += ADDRESS_INCREMENT;
-  EEPROM.put(1, address);
+  EEPROM.put(0, address);
   delay(100);
 
   digitalWrite(transistorEEPROM, LOW);
