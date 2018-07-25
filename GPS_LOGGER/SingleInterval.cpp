@@ -58,17 +58,16 @@
 #include <eepromi2c.h>      //https://github.com/solexious/ACNodeEmbedCode/blob/master/eepromi2c.h
 #include <EEPROM.h>
 
-#define transistorGPS 2
+#define transistorGPS 8
 #define transistorEEPROM 5
 
-//Make sure theses are deviasable by 8 to ensure it turns back on when expected to
 static const int stay_on = 1; /*amount of time gps is active in minutes*/
-static const int short_sleep = 1; /*amount of time logger sleeps between reading in minutes*/
+static const int short_sleep = 60; /*amount of time logger sleeps between reading in minutes*/
 
 uint32_t feedDuration = stay_on * 60000;                 //time spent getting GPS fix
-uint32_t shortSleep =(short_sleep * 60 * 60) / 8;   //time sleeping (short sleep)
-//Will always round down if a deciaml
+uint32_t shortSleep =(short_sleep * 60) / 8;   //time sleeping (short sleep)
 
+uint32_t StartUpSleep =(24 * 60 * 60) / 8;   //time sleeping before running (used for deploying)
 
 static const int RXPin = 4, TXPin = 3;
 static const uint32_t GPSBaud = 9600;
@@ -90,8 +89,6 @@ static const int LOGGER = 0;
 static const int MENU = 1;
 
 uint32_t GPS_run;
-int long_sleep_counter = 0;
-
 
 struct config {
   byte fix_attempt;
@@ -113,17 +110,6 @@ void setup(){
   digitalWrite(LED_BUILTIN, LOW);
   delay(250);
 
-
-  //Having all pins beaviour left undefined leaves them floating, and wasting power
-  //By defining the pins, it saves on power consumption (more apperent when in deep-sleep)
-  //Pins 2, 4, 5, A4, A5 are used so not included here
-  //byte pin[] = { 3, 6, 7, 8, 9, 10, 11, 12, A0, A1, A2, A3, A6, A7 };
-  //byte pinCount = sizeof(pin) / sizeof(pin[0]);
-
-  //for (byte i = 0; i <= pinCount; i++) {
-  //  pinMode(i, INPUT);    // changed as per below
-  //  digitalWrite(i, LOW);  //     ditto
-  //}
 
   pinMode(transistorGPS, OUTPUT);
   pinMode(transistorEEPROM, OUTPUT);
@@ -179,6 +165,10 @@ void loop(){
       digitalWrite(LED_BUILTIN, LOW);
       delay(250);
 
+      for (int i = 0; i < StartUpSleep; i++) {
+        LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+      }
+
       while(true){
         runLogger();
       }
@@ -202,7 +192,7 @@ void runLogger()  {
       feedGPS();
       // if ((gps.location.lat() != config.lat) && (gps.location.lng() != config.lon) && (gps.time.minute() != config.minute))WriteEE2 ();
     }
-
+    delay(500);
     WriteEE();
     printLocation();
     delay(100);
@@ -339,8 +329,20 @@ void printLocation() {
 void WriteEE () {
 
   config.fix_attempt = 1;
-  config.lat = gps.location.lat();
-  config.lon = gps.location.lng();
+
+  if (gps.location.isUpdated()) {
+    config.lat = gps.location.lat();
+    config.lon = gps.location.lng();
+ //   Serial.print("YES");
+  }else {
+    config.lat = 0.0;
+    config.lon = 0.0;
+  //  Serial.print("NO");
+
+  }
+
+  Serial.print(gps.location.lat(),6); Serial.print("\t");
+  Serial.print(gps.location.lng(),6); Serial.print("\t  ");
   config.day = gps.date.day();
   config.month = gps.date.month();
   config.hour = gps.time.hour();
@@ -348,15 +350,11 @@ void WriteEE () {
   config.second = gps.time.second();
   config.satellites = gps.satellites.value();
 
-  if (gps.location.isUpdated() == false)  {
-    config.lat = 0;
-    config.lon = 0;
-  }
-
+  delay(500);
   digitalWrite(transistorGPS, LOW);
-  delay(100);
+  delay(500);
   digitalWrite(transistorEEPROM, HIGH);
-  delay(20);
+  delay(100);
 
   eeWrite(address, config);
   address += ADDRESS_INCREMENT;
@@ -364,5 +362,5 @@ void WriteEE () {
   delay(100);
 
   digitalWrite(transistorEEPROM, LOW);
-  delay(20);
+  delay(200);
 }
