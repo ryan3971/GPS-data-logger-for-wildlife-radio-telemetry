@@ -63,12 +63,15 @@
 
 static const int stay_on = 1; /*amount of time gps is active in minutes*/
 static const int short_sleep = 60; /*amount of time logger sleeps between reading in minutes*/
+uint32_t start_up_time = 24;   /*time sleeping before running (used for deploying) (in hours)*/
+bool DO_START_UP_SLEEP = false;
+
 
 uint32_t feedDuration = stay_on * 60000;                 //time spent getting GPS fix
 uint32_t shortSleep =(short_sleep * 60) / 8;   //time sleeping (short sleep)
+uint32_t StartUpSleep =(start_up_time * 60 * 60) / 8;   //time sleeping before running (used for deploying)
 
-uint32_t StartUpSleep =(24 * 60 * 60) / 8;   //time sleeping before running (used for deploying)
-
+/*Pin 4 used to recieve GSP data*/
 static const int RXPin = 4, TXPin = 3;
 static const uint32_t GPSBaud = 9600;
 unsigned short address;     //number range is 0 - 65,535
@@ -109,7 +112,6 @@ void setup(){
   delay(250);
   digitalWrite(LED_BUILTIN, LOW);
   delay(250);
-
 
   pinMode(transistorGPS, OUTPUT);
   pinMode(transistorEEPROM, OUTPUT);
@@ -165,10 +167,11 @@ void loop(){
       digitalWrite(LED_BUILTIN, LOW);
       delay(250);
 
+#if (DO_START_UP_SLEEP)
       for (int i = 0; i < StartUpSleep; i++) {
         LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
       }
-
+#endif
       while(true){
         runLogger();
       }
@@ -183,14 +186,11 @@ void loop(){
 void runLogger()  {
 
     digitalWrite(transistorGPS, HIGH);
-
     delay(500);
 
     GPS_run = millis();
-
     while (millis() - GPS_run < feedDuration) {
       feedGPS();
-      // if ((gps.location.lat() != config.lat) && (gps.location.lng() != config.lon) && (gps.time.minute() != config.minute))WriteEE2 ();
     }
     delay(500);
     WriteEE();
@@ -207,7 +207,6 @@ void runLogger()  {
 void runMenu()  {
 
  digitalWrite(transistorEEPROM, HIGH);
-
 
  if (Serial.available() == 1) {
     switch (toUpperCase(Serial.read())) {
@@ -333,16 +332,10 @@ void WriteEE () {
   if (gps.location.isUpdated()) {
     config.lat = gps.location.lat();
     config.lon = gps.location.lng();
- //   Serial.print("YES");
   }else {
     config.lat = 0.0;
     config.lon = 0.0;
-  //  Serial.print("NO");
-
   }
-
-  Serial.print(gps.location.lat(),6); Serial.print("\t");
-  Serial.print(gps.location.lng(),6); Serial.print("\t  ");
   config.day = gps.date.day();
   config.month = gps.date.month();
   config.hour = gps.time.hour();
